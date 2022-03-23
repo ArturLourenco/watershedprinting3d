@@ -1,0 +1,28 @@
+library(Watersheds)
+library(elevatr)
+library(rayshader)
+library(tidyverse)
+library(raster)
+
+data(WatershedsData)
+ws<- WatershedsData["subbasin"][[1]][3,] #just change for your watershed of interest (.shp)
+loc_df <- data.frame(x = runif(6,min=sp::bbox(ws)[1,1], 
+                               max=sp::bbox(ws)[1,2]),
+                     y = runif(6,min=sp::bbox(ws)[2,1], 
+                               max=sp::bbox(ws)[2,2]))
+
+
+elev <- get_elev_raster(locations = loc_df, prj = sp::proj4string(ws) , z=10)
+elev_ws<- elev %>% 
+  crop(., ws) %>% 
+  mask(.,ws)
+
+elmat = raster_to_matrix(elev_ws)
+elmat %>%
+  sphere_shade(texture = "desert") %>%
+  add_water(detect_water(elmat), color = "desert") %>%
+  add_shadow(ray_shade(elmat, zscale = 3), 0.5) %>%
+  add_shadow(ambient_shade(elmat), 0) %>%
+  plot_3d(elmat, zscale = 10, fov = 0, theta = 135, zoom = 0.75, phi = 45, windowsize = c(1000, 800))
+
+save_3dprint("ws_3dmodel.stl", fixed = TRUE), maxwidth = maxw, clear = TRUE)
